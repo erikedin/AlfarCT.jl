@@ -23,13 +23,33 @@ const datasets = Dict{Symbol, Vector{String}}(
     :MRbrain => ["MRbrain.$(i)" for i=1:109]
 )
 
-function run(path::String, dataset::Symbol)
-    println("Slices: $(datasets[dataset])")
+function loadslice(slicepath::String) :: IntensityTextureInput{2, UInt16}
+    open(slicepath, "r") do io
+        flatformat = FlatBinaryFormat{UInt16}(io)
+        dimension = TextureDimension{2}(256, 256)
+        IntensityTextureInput{2, UInt16}(dimension, flatformat)
+    end
+end
 
+function loadslices(path::String, dataset::Symbol) :: IntensityTextureInput{3, UInt16}
+    textureinputs2d = IntensityTextureInput{2, UInt16}[
+        loadslice(joinpath(path, slicepath))
+        for slicepath in datasets[dataset]
+    ]
+
+    dimension = TextureDimension{2}(256, 256)
+    IntensityTextureInput{3, UInt16}(dimension, textureinputs2d)
+end
+
+function run(path::String, dataset::Symbol)
     context = Visualizer.start()
 
     ev = Visualizer.SelectVisualizationEvent("Show3DTexture")
     put!(context.channel, ev)
+
+
+    loadev = Show3DTextures.Load3DTexture(loadslices, (path, dataset))
+    put!(context.channel, loadev)
 
     if !isinteractive()
         Visualizer.waituntilstop(context)
