@@ -20,7 +20,7 @@ using Alfar.Rendering.Textures
 
 using TiffImages
 
-mutable struct TiffFormat <: IO
+mutable struct TiffFormat <: TextureInputIO{Float16}
     data::Vector{Float16}
     current::Int
 
@@ -33,8 +33,8 @@ mutable struct TiffFormat <: IO
 end
 
 
-function read(tf::TiffFormat, ::Type{Float16})
-    v = tf.data[current]
+function Textures.readtexel(tf::TiffFormat, ::Type{Float16})
+    v = tf.data[tf.current]
     tf.current +=1
     v
 end
@@ -50,7 +50,7 @@ function loadslice(slicepath::String) :: IntensityTextureInput{2, Float16}
 end
 
 function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, Float16}
-    textureinputs2d = IntensityTextureInput{2, UInt16}[
+    textureinputs2d = IntensityTextureInput{2, Float16}[
         loadslice(joinpath(path, slicepath))
         for slicepath in datasets[dataset]
     ]

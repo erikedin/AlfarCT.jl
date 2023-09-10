@@ -15,5 +15,6 @@
 module AlfarCT
 
 include("StanfordDatasets.jl")
+include("UTDigimorph.jl")
 
 end # module AlfarCT
