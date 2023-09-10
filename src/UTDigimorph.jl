@@ -12,34 +12,52 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-module StanfordDatasets
+module UTDigimorph
 
 using Alfar.Visualizer
 using Alfar.Visualizer.Show3DTextures
 using Alfar.Rendering.Textures
 
-const datasets = Dict{Symbol, Vector{String}}(
-    :CThead => ["CThead.$(i)" for i=1:113],
-    :MRbrain => ["MRbrain.$(i)" for i=1:109]
-)
+using TiffImages
 
-function loadslice(slicepath::String) :: IntensityTextureInput{2, UInt16}
-    open(slicepath, "r") do io
-        flatformat = FlatBinaryFormat{UInt16}(io)
-        dimension = TextureDimension{2}(256, 256)
-        IntensityTextureInput{2, UInt16}(dimension, flatformat)
+mutable struct TiffFormat <: IO
+    data::Vector{Float16}
+    current::Int
+
+    function TiffFormat(path::String)
+        img = TiffImages.load(path)
+        onedimimg = reshape(img, (prod(size(img)), ))
+        data = [Float16(onedimimg[i]) for i in eachindex(onedimimg)]
+        new(data, 1)
     end
 end
 
-function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, UInt16}
+
+function read(tf::TiffFormat, ::Type{Float16})
+    v = tf.data[current]
+    tf.current +=1
+    v
+end
+
+datasets = Dict{Symbol, Vector{String}}(
+    :Pawpaw => ["pawpa$(lpad(i, 4, '0')).tif" for i=1:1088],
+)
+
+function loadslice(slicepath::String) :: IntensityTextureInput{2, Float16}
+    tiffformat = TiffFormat(slicepath)
+    dimension = TextureDimension{2}(958, 646)
+    IntensityTextureInput{2, Float16}(dimension, tiffformat)
+end
+
+function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, Float16}
     textureinputs2d = IntensityTextureInput{2, UInt16}[
         loadslice(joinpath(path, slicepath))
         for slicepath in datasets[dataset]
     ]
 
-    dimension = TextureDimension{2}(256, 256)
-    textureinput = IntensityTextureInput{3, UInt16}(dimension, textureinputs2d)
-    IntensityTexture{3, UInt16}(textureinput)
+    dimension = TextureDimension{2}(958, 646)
+    textureinput = IntensityTextureInput{3, Float16}(dimension, textureinputs2d)
+    IntensityTexture{3, Float16}(textureinput)
 end
 
 function run(path::String, dataset::Symbol)
@@ -47,7 +65,6 @@ function run(path::String, dataset::Symbol)
 
     ev = Visualizer.SelectVisualizationEvent("Show3DTexture")
     put!(context.channel, ev)
-
 
     loadev = Show3DTextures.Load3DTexture(loadslices, (path, dataset))
     put!(context.channel, loadev)
@@ -57,4 +74,4 @@ function run(path::String, dataset::Symbol)
     end
 end
 
-end # module StanfordDatasets
+end # module UTDigimorph
