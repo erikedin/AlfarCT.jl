@@ -1,0 +1,4 @@
+name = "AlfarCT"
+uuid = "46f497f9-8adc-4234-87aa-a830a5f16d09"
+authors = ["Erik Edin <erikedin@users.noreply.github.com>"]
+version = "0.1.0"
