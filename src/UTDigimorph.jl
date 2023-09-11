@@ -24,12 +24,13 @@ using TiffImages
 mutable struct TiffFormat <: TextureInputIO{Float16}
     data::Vector{Float16}
     current::Int
+    dimension
 
     function TiffFormat(path::String)
         img = TiffImages.load(path)
         onedimimg = reshape(img, (prod(size(img)), ))
         data = [Float16(onedimimg[i]) for i in eachindex(onedimimg)]
-        new(data, 1)
+        new(data, 1, size(img))
     end
 end
 
@@ -46,7 +47,7 @@ datasets = Dict{Symbol, Vector{String}}(
 
 function loadslice(slicepath::String) :: IntensityTextureInput{2, Float16}
     tiffformat = TiffFormat(slicepath)
-    dimension = TextureDimension{2}(646, 958)
+    dimension = TextureDimension{2}(tiffformat.dimension[1], tiffformat.dimension[2])
     IntensityTextureInput{2, Float16}(dimension, tiffformat)
 end
 
@@ -61,7 +62,7 @@ function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, Float1
         for slicepath in datasets[dataset]
     ]
 
-    dimension = TextureDimension{2}(646, 958)
+    dimension = textureinputs2d[1].dimension
     textureinput = IntensityTextureInput{3, Float16}(dimension, textureinputs2d)
     IntensityTexture{3, Float16}(textureinput)
 end
