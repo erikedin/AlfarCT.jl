@@ -16,6 +16,7 @@ module UTDigimorph
 
 using Alfar.Visualizer
 using Alfar.Visualizer.Show3DTextures
+using Alfar.Visualizer.ShowTextures
 using Alfar.Rendering.Textures
 
 using TiffImages
@@ -45,8 +46,13 @@ datasets = Dict{Symbol, Vector{String}}(
 
 function loadslice(slicepath::String) :: IntensityTextureInput{2, Float16}
     tiffformat = TiffFormat(slicepath)
-    dimension = TextureDimension{2}(958, 646)
+    dimension = TextureDimension{2}(646, 958)
     IntensityTextureInput{2, Float16}(dimension, tiffformat)
+end
+
+function loadslicetexture(slicepath::String) :: IntensityTexture{2, Float16}
+    textureinput = loadslice(slicepath)
+    IntensityTexture{2, Float16}(textureinput)
 end
 
 function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, Float16}
@@ -55,7 +61,7 @@ function loadslices(path::String, dataset::Symbol) :: IntensityTexture{3, Float1
         for slicepath in datasets[dataset]
     ]
 
-    dimension = TextureDimension{2}(958, 646)
+    dimension = TextureDimension{2}(646, 958)
     textureinput = IntensityTextureInput{3, Float16}(dimension, textureinputs2d)
     IntensityTexture{3, Float16}(textureinput)
 end
@@ -67,6 +73,20 @@ function run(path::String, dataset::Symbol)
     put!(context.channel, ev)
 
     loadev = Show3DTextures.Load3DTexture(loadslices, (path, dataset))
+    put!(context.channel, loadev)
+
+    if !isinteractive()
+        Visualizer.waituntilstop(context)
+    end
+end
+
+function showslice(path::String)
+    context = Visualizer.start()
+
+    ev = Visualizer.SelectVisualizationEvent("ShowTexture")
+    put!(context.channel, ev)
+
+    loadev = ShowTextures.Load2DTexture(loadslicetexture, (path, ))
     put!(context.channel, loadev)
 
     if !isinteractive()
